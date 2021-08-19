@@ -99,7 +99,7 @@ function precmd() {
         kill -s USR1 $$
     }
 
-    # do not clear RPROMPT, let it persist
+    RPROMPT=''
 
     # kill child if necessary
     if [[ "${ASYNC_PROC}" != 0 ]]; then
