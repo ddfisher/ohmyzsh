@@ -21,9 +21,9 @@ function precmd_update_git_vars() {
 }
 
 autoload -U add-zsh-hook
-add-zsh-hook chpwd chpwd_update_git_vars
-add-zsh-hook precmd precmd_update_git_vars
-add-zsh-hook preexec preexec_update_git_vars
+# add-zsh-hook chpwd chpwd_update_git_vars
+# add-zsh-hook precmd precmd_update_git_vars
+# add-zsh-hook preexec preexec_update_git_vars
 
 
 ## Function definitions
@@ -87,4 +87,40 @@ ZSH_THEME_GIT_PROMPT_UNTRACKED="%{…%G%}"
 ZSH_THEME_GIT_PROMPT_CLEAN="%{$fg_bold[green]%}%{✔%G%}"
 
 # Set the prompt.
-RPROMPT='$(git_super_status)'
+
+ASYNC_PROC=0
+function precmd() {
+    function async() {
+        # save to temp file
+        printf "%s" "$(git_super_status)" > "/tmp/zsh_prompt_$$"
+        # printf "%s" "foo" > "/tmp/zsh_prompt_$$"
+
+        # signal parent
+        kill -s USR1 $$
+    }
+
+    # do not clear RPROMPT, let it persist
+
+    # kill child if necessary
+    if [[ "${ASYNC_PROC}" != 0 ]]; then
+        kill -s HUP $ASYNC_PROC >/dev/null 2>&1 || :
+    fi
+
+    # start background computation
+    async &!
+    ASYNC_PROC=$!
+}
+
+function TRAPUSR1() {
+    # read from temp file
+    RPROMPT="$(cat /tmp/zsh_prompt_$$)"
+
+    # reset proc number
+    ASYNC_PROC=0
+
+    # redisplay
+    zle && zle reset-prompt
+}
+
+
+RPROMPT=''
